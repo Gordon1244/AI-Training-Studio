@@ -105,6 +105,8 @@ namespace AITrainingStudio
         private TextBox txtOutputFolder;
         private TextBox txtRequirement;
         private TextBox txtPersonality;
+        private TextBox txtUrlSources;
+        private TextBox txtSearchKeywords;
         private TextBox txtNotes;
         private TextBox txtHelp;
         private TextBox txtLog;
@@ -112,6 +114,7 @@ namespace AITrainingStudio
         private ComboBox cboTarget;
         private ComboBox cboOutputKind;
         private ComboBox cboModelLevel;
+        private ComboBox cboTrainingBackend;
         private ListBox lstData;
         private TrackBar barCreativity;
         private TrackBar barConsistency;
@@ -129,6 +132,8 @@ namespace AITrainingStudio
         private CheckBox chkAdapters;
         private CheckBox chkHardware;
         private CheckBox chkResourcePlan;
+        private CheckBox chkAutoFindResources;
+        private CheckBox chkInferActionsFromVideo;
         private CheckBox chkTextApp;
         private CheckBox chkSafetyNotes;
         private ToolTip tips;
@@ -297,9 +302,9 @@ namespace AITrainingStudio
             cboModelLevel.DropDownStyle = ComboBoxStyle.DropDownList;
             cboModelLevel.Items.Add("入門：需求整理與行為包");
             cboModelLevel.Items.Add("進階：可接 API / 本機模型");
-            cboModelLevel.Items.Add("研究：需要 GPU 或雲端訓練");
+            cboModelLevel.Items.Add("完整：輸出訓練資料格式與整合檔");
             cboModelLevel.SelectedIndex = 0;
-            AddRow(table, "模型等級", cboModelLevel, "入門模式會建立可讀取的 AI 行為包，不需要 GPU。進階模式會把 API 或本機大模型需要的提示詞和設定整理好。研究模式會附上真正訓練大型模型前需要準備的資料格式。");
+            AddRow(table, "模型等級", cboModelLevel, "這裡只決定輸出檔案的完整程度，不決定要不要 GPU。入門會產生行為包；進階會加上 API / 本機模型設定；完整會再加上資料格式、標註表與整合檔。要不要用 GPU 請到「訓練方式」選。");
 
             Panel outputPanel = new Panel();
             outputPanel.Dock = DockStyle.Fill;
@@ -387,6 +392,20 @@ namespace AITrainingStudio
             RegisterHelp(btnClear, "清空資料清單，不會刪除原始檔案。");
             AddRow(table, "訓練資料", dataPanel, "把 AI 需要參考的資料放進來。NPC 可放劇情、角色設定、對話範例；遊戲操作可放影片、按鍵紀錄、地圖資料；文字 AI 可放 FAQ、文件、規則。");
 
+            txtUrlSources = CreateMultiLineTextBox(90);
+            txtUrlSources.Text = "";
+            AddRow(table, "網址 / 影片連結", txtUrlSources, "可以貼 YouTube、影片網址、資料網站、文件網址或 GitHub 等來源，一行一個。程式會把它們寫進資料清單與搜尋清單；若要真正下載或爬網站，之後要接合法的下載器或 API，並遵守網站條款。");
+
+            txtSearchKeywords = CreateMultiLineTextBox(80);
+            txtSearchKeywords.Text = "";
+            AddRow(table, "自動找資料關鍵字", txtSearchKeywords, "如果你沒有丟檔案，可以在這裡寫關鍵字，例如遊戲名稱、角色名稱、玩法、任務、控制方式。程式會產生可執行的資料搜尋清單，告訴你或後續爬蟲/API 該找哪些資料。");
+
+            chkAutoFindResources = CreateCheckBox("沒有資料時，幫我產生自動找資料計畫", true, 0);
+            AddRow(table, "沒有檔案時", chkAutoFindResources, "勾選後，即使沒有加入任何本機檔案，程式也會根據你的需求、關鍵字與網址產生 resource_discovery_queue.csv。它會列出該搜尋的網站、影片、文件、標註欄位與注意事項。這不是未授權爬取；真正下載前仍要確認授權與網站規則。");
+
+            chkInferActionsFromVideo = CreateCheckBox("只有畫面時，幫我推測可能操作", true, 0);
+            AddRow(table, "畫面推測操作", chkInferActionsFromVideo, "勾選後，若你只有遊戲畫面或影片，輸出會包含 action_inference_from_video_zh-TW.md，教你如何把畫面狀態推成操作標籤，例如看到彎道就推測左轉/右轉、直線就加速、接近障礙就煞車。這是標註與策略推測，不保證 100% 正確，正式訓練仍需要人工抽查。");
+
             return tab;
         }
 
@@ -398,6 +417,15 @@ namespace AITrainingStudio
             panel.Controls.Add(table);
             tab.Controls.Add(panel);
 
+            cboTrainingBackend = new ComboBox();
+            cboTrainingBackend.DropDownStyle = ComboBoxStyle.DropDownList;
+            cboTrainingBackend.Items.Add("行為包 / 提示詞：不用 GPU，最快開始");
+            cboTrainingBackend.Items.Add("大模型 API：使用雲端 LLM 或外部模型");
+            cboTrainingBackend.Items.Add("本地 GPU 直接訓練：使用自己的顯卡開始訓練");
+            cboTrainingBackend.Items.Add("混合：先用大模型整理，再用本地 GPU 訓練");
+            cboTrainingBackend.SelectedIndex = 0;
+            AddRow(table, "訓練方式", cboTrainingBackend, "這裡才決定要不要 GPU。行為包不用 GPU；大模型 API 用雲端模型；本地 GPU 直接訓練會產生 local_gpu_train 資料夾、訓練設定與啟動腳本；混合模式會先整理資料，再交給本地 GPU 訓練。");
+
             barCreativity = AddSliderRow(table, "創意程度", "越高越會嘗試不同回應或策略；越低越保守。NPC 想有個性可拉高，正式客服或穩定控制建議中低。", 0, 100, 45, out valCreativity);
             barConsistency = AddSliderRow(table, "穩定一致", "越高越遵守人格、規則和固定流程；越低越容易變化。想讓 NPC 不跑人設，這項要拉高。", 0, 100, 75, out valConsistency);
             barMemory = AddSliderRow(table, "記憶重視", "越高越重視過去事件、玩家選擇和長期狀態。這會寫入記憶策略，不代表程式會自動擁有無限記憶。", 0, 100, 60, out valMemory);
@@ -407,7 +435,7 @@ namespace AITrainingStudio
 
             Panel checks = new Panel();
             checks.Dock = DockStyle.Fill;
-            checks.Height = 180;
+            checks.Height = 230;
             chkTutorial = CreateCheckBox("產生新手教學", true, 0);
             chkAdapters = CreateCheckBox("產生遊戲引擎整合範本", true, 28);
             chkHardware = CreateCheckBox("產生開發板 / 手把橋接範本", false, 56);
@@ -420,12 +448,12 @@ namespace AITrainingStudio
             checks.Controls.Add(chkResourcePlan);
             checks.Controls.Add(chkTextApp);
             checks.Controls.Add(chkSafetyNotes);
-            RegisterHelp(chkTutorial, "產生一步一步的中文教學，讓沒有程式背景的人知道下一步該做什麼。");
-            RegisterHelp(chkAdapters, "產生 Unity、Godot、Unreal 的接入範本。封閉商業遊戲如果不能改檔，就只能用官方 Mod、外掛 SDK 或外部控制方式。");
-            RegisterHelp(chkHardware, "產生通用序列埠到按鍵指令的範本，適合 Arduino、RP2040、ESP32-S3 等開發板再自行接 HID 函式庫。");
-            RegisterHelp(chkResourcePlan, "程式不會未經允許抓取網路內容；這個選項會產生你該找哪些資料、怎麼標註、怎麼避免版權問題的清單。");
-            RegisterHelp(chkTextApp, "產生一個可雙擊開啟的 HTML 文字 AI App 範本，內含你的 AI 設定與接 API 或本機模型的預留位置。");
-            RegisterHelp(chkSafetyNotes, "產生風險說明，例如不能破解遊戲、不能繞過主機安全機制、不能把未授權資料拿來訓練。");
+            RegisterHelp(chkTutorial, "產生新手教學：會把這次專案拆成步驟，告訴你先看哪些檔、如何測試、如何接到 NPC、文字 AI、影片操作或硬體。適合完全沒有程式背景的人，避免只拿到一堆檔案卻不知道下一步。");
+            RegisterHelp(chkAdapters, "產生遊戲引擎整合範本：會輸出 Unity C#、Godot GDScript、Unreal Blueprint 接入說明。用途是把 AI 行為包接到你能修改的遊戲專案、官方 Mod SDK 或自製遊戲；不能用來破解封閉商業遊戲。");
+            RegisterHelp(chkHardware, "產生開發板 / 手把橋接範本：會輸出序列埠指令、控制策略 JSON、影片標註 CSV 與接開發板的說明。適合 Arduino、RP2040、ESP32-S3 等硬體，再由你接合法的 HID / Gamepad 函式庫。");
+            RegisterHelp(chkResourcePlan, "產生找資料清單：當你沒有檔案、只有網址或只有需求時，會建立 resource_discovery_queue.csv，列出要搜尋的關鍵字、來源類型、資料用途、授權注意事項與標註方式。它不會未授權下載內容。");
+            RegisterHelp(chkTextApp, "產生文字 AI App 範本：會輸出可雙擊開啟的 HTML 介面與 app_config.json。它會放入你的系統提示詞、人格、資料限制與 API 預留位置，之後可接大模型 API 或本機 LLM。正式使用時 API Key 應放後端。");
+            RegisterHelp(chkSafetyNotes, "產生風險與限制說明：會列出不能做的事，例如破解遊戲、繞過主機安全、違反多人遊戲服務條款、使用未授權資料訓練、直接把未測試 AI 接真實設備。這份文件是給使用者與工程師檢查風險用。");
             AddRow(table, "要產生哪些東西", checks, "勾選你希望輸出的額外內容。新手建議保留教學和整合範本，等熟悉後再只輸出訓練檔。");
 
             return tab;
@@ -849,6 +877,7 @@ namespace AITrainingStudio
             txtProjectName.Text = "VillageGuardian_NPC";
             txtRequirement.Text = "我要一個遊戲 NPC，名字叫艾琳。她是村莊守護者，會記住玩家是否幫助村民。玩家有危險時，她會先提醒、再給任務提示。她不能透露主線結局，也不能直接替玩家完成任務。";
             txtPersonality.Text = "沉著、可靠、說話簡短、有同理心。對陌生玩家保持禮貌，對守信玩家更願意分享情報。";
+            txtSearchKeywords.Text = "fantasy village guardian npc dialogue\nbranching npc memory examples";
             txtNotes.Text = "第一次測試用，先接 Unity 或 Godot，確認對話和狀態記憶。";
             chkAdapters.Checked = true;
             chkTutorial.Checked = true;
@@ -863,6 +892,7 @@ namespace AITrainingStudio
             txtProjectName.Text = "KartDriving_Controller";
             txtRequirement.Text = "我要訓練一個賽車遊戲操作策略。輸入是遊玩影片或畫面狀態，輸出是加速、煞車、左轉、右轉、使用道具。策略要保守，不要故意撞牆或逆向。";
             txtPersonality.Text = "操作風格：穩定、保守、優先保持賽道中央，有道具時先保留到彎道或被追擊時使用。";
+            txtSearchKeywords.Text = "kart racing gameplay video\nkart racing controller mapping\nscreen to action labeling";
             txtNotes.Text = "接真實主機時，只使用合法購買且允許的控制硬體，不繞過主機安全機制。";
             chkAdapters.Checked = false;
             chkHardware.Checked = true;
@@ -904,6 +934,19 @@ namespace AITrainingStudio
                 WriteText(Path.Combine(projectFolder, "model_card_zh-TW.md"), BuildModelCard(files, extCounts));
                 WriteDataManifest(Path.Combine(projectFolder, "data_manifest.csv"), files, warnings);
                 WriteText(Path.Combine(projectFolder, "operation_mapping.csv"), BuildOperationMappingCsv());
+                if (chkAutoFindResources.Checked || HasText(txtUrlSources.Text) || HasText(txtSearchKeywords.Text) || files.Count == 0)
+                {
+                    WriteText(Path.Combine(projectFolder, "resource_discovery_queue.csv"), BuildResourceDiscoveryQueue(files));
+                }
+                if (chkInferActionsFromVideo.Checked || cboMode.SelectedIndex == 1)
+                {
+                    WriteText(Path.Combine(projectFolder, "action_inference_from_video_zh-TW.md"), BuildActionInferenceGuide());
+                }
+                WriteText(Path.Combine(projectFolder, "training_backend_plan_zh-TW.md"), BuildTrainingBackendPlan());
+                if (UsesLocalGpuTraining())
+                {
+                    WriteLocalGpuTrainingFiles(projectFolder);
+                }
 
                 if (chkTutorial.Checked || cboOutputKind.SelectedIndex == 0 || forceIntegration)
                 {
@@ -1069,6 +1112,7 @@ namespace AITrainingStudio
             JsonProp(sb, "  ", "target", cboTarget.Text, true);
             JsonProp(sb, "  ", "output_kind", cboOutputKind.Text, true);
             JsonProp(sb, "  ", "model_level", cboModelLevel.Text, true);
+            JsonProp(sb, "  ", "training_backend", cboTrainingBackend.Text, true);
             JsonProp(sb, "  ", "requirement", txtRequirement.Text, true);
             JsonProp(sb, "  ", "personality_or_style", txtPersonality.Text, true);
             JsonProp(sb, "  ", "notes", txtNotes.Text, true);
@@ -1087,6 +1131,8 @@ namespace AITrainingStudio
             JsonBoolProp(sb, "    ", "game_engine_adapters", chkAdapters.Checked, true);
             JsonBoolProp(sb, "    ", "hardware_bridge", chkHardware.Checked, true);
             JsonBoolProp(sb, "    ", "resource_plan", chkResourcePlan.Checked, true);
+            JsonBoolProp(sb, "    ", "auto_resource_discovery", chkAutoFindResources.Checked, true);
+            JsonBoolProp(sb, "    ", "infer_actions_from_video", chkInferActionsFromVideo.Checked, true);
             JsonBoolProp(sb, "    ", "text_ai_app_template", chkTextApp.Checked, true);
             JsonBoolProp(sb, "    ", "safety_notes", chkSafetyNotes.Checked, false);
             sb.AppendLine("  },");
@@ -1102,6 +1148,9 @@ namespace AITrainingStudio
                 sb.AppendLine();
             }
             sb.AppendLine("  ],");
+
+            WriteJsonStringArray(sb, "  ", "url_sources", SplitLines(txtUrlSources.Text), true);
+            WriteJsonStringArray(sb, "  ", "search_keywords", SplitLines(txtSearchKeywords.Text), true);
 
             sb.AppendLine("  \"dataset_summary\": {");
             JsonNumberProp(sb, "    ", "file_count", files.Count, true);
@@ -1216,12 +1265,19 @@ namespace AITrainingStudio
             sb.AppendLine();
             sb.AppendLine("目標類型：" + cboMode.Text);
             sb.AppendLine("接入目標：" + cboTarget.Text);
+            sb.AppendLine("訓練方式：" + cboTrainingBackend.Text);
             sb.AppendLine();
             sb.AppendLine("使用者需求：");
             sb.AppendLine(EmptyToPlaceholder(txtRequirement.Text));
             sb.AppendLine();
             sb.AppendLine("人格 / 風格：");
             sb.AppendLine(EmptyToPlaceholder(txtPersonality.Text));
+            sb.AppendLine();
+            sb.AppendLine("外部網址 / 影片連結：");
+            sb.AppendLine(EmptyToPlaceholder(txtUrlSources.Text));
+            sb.AppendLine();
+            sb.AppendLine("自動找資料關鍵字：");
+            sb.AppendLine(EmptyToPlaceholder(txtSearchKeywords.Text));
             sb.AppendLine();
             sb.AppendLine("參數：");
             sb.AppendLine("- 創意程度：" + barCreativity.Value.ToString());
@@ -1249,6 +1305,7 @@ namespace AITrainingStudio
             sb.AppendLine("- 類型：" + cboMode.Text);
             sb.AppendLine("- 接入目標：" + cboTarget.Text);
             sb.AppendLine("- 模型等級：" + cboModelLevel.Text);
+            sb.AppendLine("- 訓練方式：" + cboTrainingBackend.Text);
             sb.AppendLine("- 資料檔數：" + files.Count.ToString());
             sb.AppendLine();
             sb.AppendLine("## 副檔名統計");
@@ -1383,6 +1440,240 @@ namespace AITrainingStudio
             sb.AppendLine("- 使用影片、圖片、文字訓練前，請確認你有權使用這些資料。");
             sb.AppendLine("- 若要接 Nintendo Switch 或其他主機，只使用合法購買、合法授權且不繞過安全機制的控制硬體。");
             sb.AppendLine("- 若要用於公開服務或多人遊戲，先確認服務條款允許自動化。");
+            return sb.ToString();
+        }
+
+        private string BuildResourceDiscoveryQueue(List<string> files)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("priority,source_type,query_or_url,why_needed,how_to_label,legal_note");
+
+            List<string> urls = SplitLines(txtUrlSources.Text);
+            for (int i = 0; i < urls.Count; i++)
+            {
+                sb.AppendLine(CsvLine("1", "url", urls[i], "使用者指定的外部來源", "先記錄標題、作者、授權、時間點，再標註可用片段", "先確認網站條款與授權，不能未授權下載或重上傳"));
+            }
+
+            List<string> keywords = SplitLines(txtSearchKeywords.Text);
+            for (int i = 0; i < keywords.Count; i++)
+            {
+                sb.AppendLine(CsvLine("2", "search_keyword", keywords[i], "沒有足夠本機資料時用來找公開資料", "把找到的資料整理成 input,expected_output,reason,source", "只使用自己有權使用、公開授權或已取得許可的資料"));
+            }
+
+            if (files.Count == 0 && urls.Count == 0 && keywords.Count == 0)
+            {
+                string seed = txtRequirement.Text.Trim();
+                if (String.IsNullOrWhiteSpace(seed))
+                {
+                    seed = txtProjectName.Text.Trim();
+                }
+                sb.AppendLine(CsvLine("1", "search_keyword", seed, "目前沒有本機檔案、網址或關鍵字，先從需求建立搜尋入口", "找到資料後補上來源、用途與標註", "不要抓取或訓練未授權內容"));
+            }
+
+            if (cboMode.SelectedIndex == 1)
+            {
+                sb.AppendLine(CsvLine("1", "video", "gameplay video with visible screen", "遊戲操作模型需要畫面狀態", "time_ms,screen_state,action,strength,duration_ms,success", "優先使用自己錄製或有授權影片"));
+                sb.AppendLine(CsvLine("2", "reference", "controller mapping for target game", "需要知道每個按鍵代表什麼操作", "action_name,button_or_axis,meaning,notes", "只使用官方文件或你自己的設定"));
+            }
+            else if (cboMode.SelectedIndex == 0)
+            {
+                sb.AppendLine(CsvLine("2", "document", "character profile and dialogue examples", "NPC 需要人格、世界觀與對話範例", "player_input,npc_reply,intent,memory_update", "使用自己創作或有授權文本"));
+            }
+            else
+            {
+                sb.AppendLine(CsvLine("2", "document", "FAQ, rules, product docs", "文字 AI 需要可查詢知識", "question,answer,source,confidence", "確認資料可用於模型或 App"));
+            }
+
+            return sb.ToString();
+        }
+
+        private string BuildActionInferenceGuide()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("# 只有畫面時，如何推測操作");
+            sb.AppendLine();
+            sb.AppendLine("這份文件用於「沒有搖桿紀錄、只有遊玩畫面」的情況。它不會保證推測完全正確，但可以先建立可人工檢查的標註資料。");
+            sb.AppendLine();
+            sb.AppendLine("## 推測流程");
+            sb.AppendLine("1. 先把影片切成片段，例如每 0.5 秒或每個明顯操作一段。");
+            sb.AppendLine("2. 觀察畫面狀態：直線、彎道、障礙、敵人、道具、速度、角色位置。");
+            sb.AppendLine("3. 根據畫面變化推測動作：直線通常加速；左彎通常左轉；右彎通常右轉；接近障礙可能煞車或閃避；道具出現可能保留或使用。");
+            sb.AppendLine("4. 每個推測都加上 confidence。低於 70 的標註要人工檢查。");
+            sb.AppendLine("5. 用 `hardware/video_labeling_template.csv` 或自己建立 CSV 記錄。");
+            sb.AppendLine();
+            sb.AppendLine("## 建議標註欄位");
+            sb.AppendLine("`time_ms,screen_state,observed_change,inferred_action,strength,duration_ms,confidence,reason,needs_review`");
+            sb.AppendLine();
+            sb.AppendLine("## 範例");
+            sb.AppendLine("- 畫面：車在直線中央，前方無障礙。推測：ACCELERATE，confidence 90。");
+            sb.AppendLine("- 畫面：賽道即將左彎，車靠右側。推測：STEER_LEFT，confidence 80。");
+            sb.AppendLine("- 畫面：前方牆壁快速接近。推測：BRAKE 或 STEER_AWAY，confidence 65，需人工檢查。");
+            sb.AppendLine();
+            sb.AppendLine("## 重要限制");
+            sb.AppendLine("只看畫面通常無法知道玩家實際按了哪顆鍵，只能推測「合理動作」。正式訓練最好加入實際控制紀錄、遊戲狀態或人工標註。");
+            return sb.ToString();
+        }
+
+        private string BuildTrainingBackendPlan()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("# 訓練方式計畫");
+            sb.AppendLine();
+            sb.AppendLine("目前選擇：" + cboTrainingBackend.Text);
+            sb.AppendLine();
+            sb.AppendLine("## 行為包 / 提示詞");
+            sb.AppendLine("- 優點：不需要 GPU，最快能做出 NPC、文字 AI 或控制策略雛形。");
+            sb.AppendLine("- 產物：`.aipack`、`training_project.json`、提示詞、操作對應表。");
+            sb.AppendLine();
+            sb.AppendLine("## 大模型 API");
+            sb.AppendLine("- 適合：沒有本地 GPU，但想使用較強語言理解、資料整理、角色扮演或標註輔助。");
+            sb.AppendLine("- 需要：API Key、後端服務、成本控制、資料授權檢查。");
+            sb.AppendLine("- 建議：不要把 API Key 放在前端 HTML；放在後端或本機安全設定。");
+            sb.AppendLine();
+            sb.AppendLine("## 本地 GPU");
+            sb.AppendLine("- 適合：你有 NVIDIA GPU、足夠 VRAM、Python、CUDA、PyTorch 或其他訓練框架。");
+            sb.AppendLine("- 選擇「本地 GPU 直接訓練」時，會輸出 `local_gpu_train` 資料夾。");
+            sb.AppendLine("- 你可以從 `local_gpu_train\\start_local_gpu_training.ps1` 開始。若電腦沒有 Python、CUDA 或 PyTorch，腳本會提示環境不足。");
+            sb.AppendLine("- 遊戲操作模型建議先用模擬環境或離線影片資料，不要直接接真機。");
+            sb.AppendLine();
+            sb.AppendLine("## 混合");
+            sb.AppendLine("- 流程：先用大模型幫你整理資料、產生標註草稿、檢查格式，再用本地 GPU 做微調或策略訓練。");
+            sb.AppendLine("- 風險：大模型產生的標註可能錯，必須抽查。");
+            return sb.ToString();
+        }
+
+        private bool UsesLocalGpuTraining()
+        {
+            return cboTrainingBackend != null && cboTrainingBackend.Text.IndexOf("GPU", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private void WriteLocalGpuTrainingFiles(string projectFolder)
+        {
+            string folder = Path.Combine(projectFolder, "local_gpu_train");
+            Directory.CreateDirectory(folder);
+            WriteText(Path.Combine(folder, "README_zh-TW.md"), BuildLocalGpuReadme());
+            WriteText(Path.Combine(folder, "train_config.json"), BuildLocalGpuConfig());
+            WriteText(Path.Combine(folder, "dataset_template.csv"), BuildLocalGpuDatasetTemplate());
+            WriteText(Path.Combine(folder, "start_local_gpu_training.ps1"), BuildLocalGpuStarterPs1());
+            WriteText(Path.Combine(folder, "check_gpu.py"), BuildLocalGpuCheckPy());
+            WriteText(Path.Combine(folder, "train_stub.py"), BuildLocalGpuTrainStubPy());
+        }
+
+        private string BuildLocalGpuReadme()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("# 本地 GPU 直接訓練");
+            sb.AppendLine();
+            sb.AppendLine("這個資料夾是給「本地 GPU 直接訓練」使用。它會從你的訓練包設定開始，檢查 Python / PyTorch / CUDA，然後啟動訓練腳本。");
+            sb.AppendLine();
+            sb.AppendLine("## 需要先準備");
+            sb.AppendLine("- NVIDIA GPU 與可用 VRAM。");
+            sb.AppendLine("- Python 3.10+。");
+            sb.AppendLine("- CUDA 版 PyTorch 或你自己的訓練框架。");
+            sb.AppendLine("- 已標註資料，格式可參考 `dataset_template.csv`。");
+            sb.AppendLine();
+            sb.AppendLine("## 開始");
+            sb.AppendLine("在 PowerShell 執行：");
+            sb.AppendLine();
+            sb.AppendLine("```powershell");
+            sb.AppendLine(".\\start_local_gpu_training.ps1");
+            sb.AppendLine("```");
+            sb.AppendLine();
+            sb.AppendLine("如果你的電腦沒有 GPU 訓練環境，腳本會停下來並顯示缺什麼。");
+            return sb.ToString();
+        }
+
+        private string BuildLocalGpuConfig()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("{");
+            JsonProp(sb, "  ", "project_name", txtProjectName.Text.Trim(), true);
+            JsonProp(sb, "  ", "mode", cboMode.Text, true);
+            JsonProp(sb, "  ", "target", cboTarget.Text, true);
+            JsonProp(sb, "  ", "training_backend", cboTrainingBackend.Text, true);
+            JsonProp(sb, "  ", "dataset_csv", "dataset_template.csv", true);
+            JsonProp(sb, "  ", "output_dir", "outputs", true);
+            JsonNumberProp(sb, "  ", "epochs", Math.Max(1, barPasses.Value), true);
+            JsonNumberProp(sb, "  ", "safety_limit", barSafety.Value, false);
+            sb.AppendLine("}");
+            return sb.ToString();
+        }
+
+        private string BuildLocalGpuDatasetTemplate()
+        {
+            if (cboMode.SelectedIndex == 1)
+            {
+                return "input_path,time_ms,screen_state,expected_action,strength,duration_ms,confidence,notes\nsample.mp4,0,\"straight road\",ACCELERATE,80,500,90,\"example\"\n";
+            }
+            if (cboMode.SelectedIndex == 0)
+            {
+                return "context,player_input,expected_reply,intent,memory_update,notes\n\"village gate\",\"hello\",\"你好，旅人。\",reply,\"met_player=true\",\"example\"\n";
+            }
+            return "input,expected_output,source,notes\n\"question\",\"answer\",\"manual\",\"example\"\n";
+        }
+
+        private string BuildLocalGpuStarterPs1()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("$ErrorActionPreference = 'Stop'");
+            sb.AppendLine("Write-Host 'AI Training Studio - Local GPU Training'");
+            sb.AppendLine("if (-not (Get-Command python -ErrorAction SilentlyContinue)) {");
+            sb.AppendLine("  Write-Host 'ERROR: Python was not found. Install Python 3.10+ first.'");
+            sb.AppendLine("  Read-Host 'Press Enter to exit'");
+            sb.AppendLine("  exit 1");
+            sb.AppendLine("}");
+            sb.AppendLine("python .\\check_gpu.py");
+            sb.AppendLine("if ($LASTEXITCODE -ne 0) { Read-Host 'Press Enter to exit'; exit $LASTEXITCODE }");
+            sb.AppendLine("python .\\train_stub.py --config .\\train_config.json");
+            sb.AppendLine("Read-Host 'Training command finished. Press Enter to exit'");
+            return sb.ToString();
+        }
+
+        private string BuildLocalGpuCheckPy()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("import sys");
+            sb.AppendLine("try:");
+            sb.AppendLine("    import torch");
+            sb.AppendLine("except Exception as e:");
+            sb.AppendLine("    print('ERROR: PyTorch is not installed:', e)");
+            sb.AppendLine("    sys.exit(2)");
+            sb.AppendLine("print('torch:', torch.__version__)");
+            sb.AppendLine("print('cuda_available:', torch.cuda.is_available())");
+            sb.AppendLine("if not torch.cuda.is_available():");
+            sb.AppendLine("    print('ERROR: CUDA GPU is not available. Install CUDA PyTorch or choose non-GPU mode.')");
+            sb.AppendLine("    sys.exit(3)");
+            return sb.ToString();
+        }
+
+        private string BuildLocalGpuTrainStubPy()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("import argparse");
+            sb.AppendLine("import csv");
+            sb.AppendLine("import json");
+            sb.AppendLine("import os");
+            sb.AppendLine();
+            sb.AppendLine("def main():");
+            sb.AppendLine("    parser = argparse.ArgumentParser()");
+            sb.AppendLine("    parser.add_argument('--config', required=True)");
+            sb.AppendLine("    args = parser.parse_args()");
+            sb.AppendLine("    with open(args.config, 'r', encoding='utf-8') as f:");
+            sb.AppendLine("        cfg = json.load(f)");
+            sb.AppendLine("    dataset = cfg.get('dataset_csv', 'dataset_template.csv')");
+            sb.AppendLine("    if not os.path.exists(dataset):");
+            sb.AppendLine("        raise SystemExit(f'Missing dataset: {dataset}')");
+            sb.AppendLine("    with open(dataset, 'r', encoding='utf-8-sig', newline='') as f:");
+            sb.AppendLine("        rows = list(csv.DictReader(f))");
+            sb.AppendLine("    os.makedirs(cfg.get('output_dir', 'outputs'), exist_ok=True)");
+            sb.AppendLine("    print('Loaded rows:', len(rows))");
+            sb.AppendLine("    print('This is the local GPU training entry point.')");
+            sb.AppendLine("    print('Replace train_stub.py with your real PyTorch / vision / LLM training code.')");
+            sb.AppendLine("    with open(os.path.join(cfg.get('output_dir', 'outputs'), 'training_started.txt'), 'w', encoding='utf-8') as f:");
+            sb.AppendLine("        f.write('Local GPU training entry point ran successfully.\\n')");
+            sb.AppendLine();
+            sb.AppendLine("if __name__ == '__main__':");
+            sb.AppendLine("    main()");
             return sb.ToString();
         }
 
@@ -1769,6 +2060,63 @@ namespace AITrainingStudio
             sb.AppendLine();
         }
 
+        private void WriteJsonStringArray(StringBuilder sb, string indent, string name, List<string> values, bool comma)
+        {
+            sb.Append(indent).Append("\"").Append(JsonEscape(name)).Append("\": [");
+            if (values.Count == 0)
+            {
+                sb.Append("]");
+                if (comma)
+                {
+                    sb.Append(",");
+                }
+                sb.AppendLine();
+                return;
+            }
+
+            sb.AppendLine();
+            for (int i = 0; i < values.Count; i++)
+            {
+                sb.Append(indent).Append("  \"").Append(JsonEscape(values[i])).Append("\"");
+                if (i < values.Count - 1)
+                {
+                    sb.Append(",");
+                }
+                sb.AppendLine();
+            }
+            sb.Append(indent).Append("]");
+            if (comma)
+            {
+                sb.Append(",");
+            }
+            sb.AppendLine();
+        }
+
+        private bool HasText(string text)
+        {
+            return !String.IsNullOrWhiteSpace(text);
+        }
+
+        private List<string> SplitLines(string text)
+        {
+            List<string> values = new List<string>();
+            if (String.IsNullOrWhiteSpace(text))
+            {
+                return values;
+            }
+
+            string[] lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string value = lines[i].Trim();
+                if (value.Length > 0)
+                {
+                    values.Add(value);
+                }
+            }
+            return values;
+        }
+
         private string JsonEscape(string text)
         {
             if (text == null)
@@ -1814,6 +2162,11 @@ namespace AITrainingStudio
         private string CsvLine(string a, string b, string c, string d, string e)
         {
             return Csv(a) + "," + Csv(b) + "," + Csv(c) + "," + Csv(d) + "," + Csv(e);
+        }
+
+        private string CsvLine(string a, string b, string c, string d, string e, string f)
+        {
+            return Csv(a) + "," + Csv(b) + "," + Csv(c) + "," + Csv(d) + "," + Csv(e) + "," + Csv(f);
         }
 
         private string Csv(string text)
