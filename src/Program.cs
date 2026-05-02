@@ -582,7 +582,7 @@ namespace AITrainingStudio
             return button;
         }
 
-        private void AddRow(TableLayoutPanel table, string title, Control input, string help)
+        private Label AddRow(TableLayoutPanel table, string title, Control input, string help)
         {
             int row = table.RowCount;
             table.RowCount = row + 2;
@@ -610,20 +610,283 @@ namespace AITrainingStudio
             }
 
             Label helpLabel = new Label();
-            helpLabel.Text = help;
+            helpLabel.Text = GetContextualHelp(input, help);
             helpLabel.AutoSize = true;
             helpLabel.ForeColor = Color.DimGray;
             helpLabel.MaximumSize = new Size(760, 0);
             helpLabel.Margin = new Padding(153, 0, 12, 16);
+
+            if (combo != null)
+            {
+                combo.SelectedIndexChanged += delegate
+                {
+                    string selectedHelp = GetContextualHelp(combo, help);
+                    helpLabel.Text = selectedHelp;
+                    ShowHelp(selectedHelp);
+                };
+            }
 
             table.Controls.Add(titleLabel, 0, row);
             table.Controls.Add(input, 1, row);
             table.Controls.Add(helpLabel, 0, row + 1);
             table.SetColumnSpan(helpLabel, 2);
 
-            RegisterHelp(titleLabel, help);
-            RegisterHelp(input, help);
-            RegisterHelp(helpLabel, help);
+            RegisterHelp(titleLabel, help, helpLabel);
+            RegisterHelp(input, help, helpLabel);
+            RegisterHelp(helpLabel, help, helpLabel);
+            return helpLabel;
+        }
+
+        private string GetContextualHelp(Control control, string fallback)
+        {
+            CheckBox check = control as CheckBox;
+            if (check != null)
+            {
+                string state = check.Checked ? "目前狀態：已勾選。 " : "目前狀態：未勾選。 ";
+                if (check == chkAutoFindResources)
+                {
+                    return state + (check.Checked ? "建立輸出包時會產生自動找資料計畫，包含關鍵字、網址、來源類型、授權注意事項與標註方式。" : "不會特別產生自動找資料計畫；若你沒有提供資料，輸出包可能只包含空白資料結構。");
+                }
+                if (check == chkInferActionsFromVideo)
+                {
+                    return state + (check.Checked ? "會產生只有畫面時推測操作的教學，協助把影片畫面標成加速、煞車、左右轉、使用道具等動作。" : "不會產生畫面推測操作教學；比較適合你已經有搖桿操作紀錄或人工標註資料。");
+                }
+                if (check == chkTutorial)
+                {
+                    return state + (check.Checked ? "會產生新手教學，逐步說明先看哪個檔案、怎麼測試、怎麼接到遊戲、App 或硬體。" : "不產生新手教學；適合你已經熟悉輸出檔案用途。");
+                }
+                if (check == chkAdapters)
+                {
+                    return state + (check.Checked ? "會產生 Unity、Godot、Unreal 等遊戲引擎接入範本。" : "不產生遊戲引擎接入範本；適合你只需要訓練檔或自己會寫接入程式。");
+                }
+                if (check == chkHardware)
+                {
+                    return state + (check.Checked ? "會產生開發板、序列埠、手把橋接與控制策略範本。" : "不產生硬體橋接範本；適合不需要接開發板或手把的專案。");
+                }
+                if (check == chkResourcePlan)
+                {
+                    return state + (check.Checked ? "會產生找資料清單，列出該找哪些資料、怎麼標註、怎麼避免授權問題。" : "不產生找資料清單；適合你已經準備好資料集。");
+                }
+                if (check == chkTextApp)
+                {
+                    return state + (check.Checked ? "會產生可雙擊開啟的 HTML 文字 AI App 範本與 app_config.json。" : "不產生文字 AI App 範本；適合只做 NPC、控制策略或資料包。");
+                }
+                if (check == chkSafetyNotes)
+                {
+                    return state + (check.Checked ? "會產生風險與限制說明，提醒授權、遊戲條款、真實設備與安全限制。" : "不產生風險說明；正式接遊戲、服務或硬體時仍建議保留。");
+                }
+                return state + fallback;
+            }
+
+            TrackBar track = control as TrackBar;
+            if (track != null)
+            {
+                string level;
+                if (track.Value <= track.Minimum + (track.Maximum - track.Minimum) / 3)
+                {
+                    level = "偏低";
+                }
+                else if (track.Value >= track.Minimum + (track.Maximum - track.Minimum) * 2 / 3)
+                {
+                    level = "偏高";
+                }
+                else
+                {
+                    level = "中等";
+                }
+
+                if (track == barCreativity)
+                {
+                    return "目前創意程度：" + track.Value.ToString() + "，屬於" + level + "。低代表穩定保守，高代表更會嘗試不同回答、人格表現或操作策略。";
+                }
+                if (track == barConsistency)
+                {
+                    return "目前穩定一致：" + track.Value.ToString() + "，屬於" + level + "。越高越遵守人格、規則與固定流程，越低越容易自由發揮。";
+                }
+                if (track == barMemory)
+                {
+                    return "目前記憶重視：" + track.Value.ToString() + "，屬於" + level + "。越高越重視玩家選擇、過去事件與長期狀態，但不代表自動擁有無限記憶。";
+                }
+                if (track == barReaction)
+                {
+                    return "目前反應速度：" + track.Value.ToString() + "，屬於" + level + "。越高越偏向快速決策；接硬體或遊戲控制時，通常代表動作間隔更短。";
+                }
+                if (track == barSafety)
+                {
+                    return "目前安全限制：" + track.Value.ToString() + "，屬於" + level + "。越高越保守，會更明確避免危險、違規、未授權或不適合自動化的操作。";
+                }
+                if (track == barPasses)
+                {
+                    return "目前整理輪數：" + track.Value.ToString() + "。這是資料整理與規則萃取的輪數，不是大型模型訓練 epoch；越高文件越詳細，但建立時間較久。";
+                }
+                return "目前數值：" + track.Value.ToString() + "。 " + fallback;
+            }
+
+            Button button = control as Button;
+            if (button != null)
+            {
+                string text = button.Text;
+                if (text.IndexOf("加入檔案", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：加入檔案。一次選多個圖片、影片、文字、CSV、設定檔或操作紀錄；不會移動或刪除原始檔。";
+                }
+                if (text.IndexOf("加入資料夾", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：加入資料夾。建立訓練包時會掃描資料夾與子資料夾中的檔案，適合大量資料。";
+                }
+                if (text.IndexOf("移除", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：移除選取。只從清單拿掉選取項目，不會刪除你電腦上的原始檔案。";
+                }
+                if (text.IndexOf("清空", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：清空。清空目前資料清單，不會刪除原始檔案。";
+                }
+                if (text.IndexOf("建立訓練包", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：建立訓練包。產生核心 .aipack、JSON、提示詞、資料清單、操作對應表與模型卡。";
+                }
+                if (text.IndexOf("建立整合包", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：建立整合包。除了訓練包，還會產生遊戲引擎、硬體橋接、新手教學與風險文件。";
+                }
+                if (text.IndexOf("文字AI", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：建立文字 AI App。產生可雙擊開啟的 HTML App 範本，之後可接大模型 API 或本機模型。";
+                }
+                if (text.IndexOf("開啟輸出", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：開啟輸出資料夾。打開目前設定的輸出位置，方便查看產生的訓練包。";
+                }
+                if (text.IndexOf("NPC", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：載入 NPC 範例。自動填入一個村莊守護者 NPC 的需求、人格與測試設定。";
+                }
+                if (text.IndexOf("遊戲操作", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：載入遊戲操作範例。自動填入賽車控制策略、影片標註與開發板橋接的測試設定。";
+                }
+                if (text.IndexOf("選擇", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "按鈕：選擇資料夾。指定訓練包要輸出的資料夾位置。";
+                }
+                return "按鈕：" + button.Text + "。 " + fallback;
+            }
+
+            ComboBox combo = control as ComboBox;
+            if (combo == null)
+            {
+                return fallback;
+            }
+
+            string value = combo.Text;
+            if (String.IsNullOrWhiteSpace(value))
+            {
+                return fallback;
+            }
+
+            if (combo == cboMode)
+            {
+                if (value.IndexOf("NPC", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：NPC 智慧角色。適合做遊戲角色、村民、商人、敵人或隊友。輸出會重點整理人格、對話風格、記憶規則、任務反應，以及 Unity / Godot / Unreal 接入方式。";
+                }
+                if (value.IndexOf("遊戲", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：遊戲操作 / 控制策略。適合把影片、畫面狀態或操作紀錄整理成「看到什麼畫面 -> 做什麼操作」。如果只有畫面，會產生推測操作的標註教學。";
+                }
+                if (value.IndexOf("文字", StringComparison.OrdinalIgnoreCase) >= 0 || value.IndexOf("App", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：文字型 AI / App。適合做客服、角色聊天、文件問答、個人助手。輸出會包含提示詞、資料規則、App 範本，以及大模型 API 或本機模型接法。";
+                }
+                return "目前選擇：自訂流程自動化。適合把 AI 輸出接到固定流程，例如讀檔、整理資料、呼叫 API、產生報告或送出硬體指令。";
+            }
+
+            if (combo == cboTarget)
+            {
+                if (value.IndexOf("Unity", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：Unity 遊戲專案。輸出會包含 Unity C# adapter 範本，建議把訓練包放在 StreamingAssets，再由角色腳本讀取。";
+                }
+                if (value.IndexOf("Godot", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：Godot 遊戲專案。輸出會包含 GDScript adapter 範本，適合把 NPC 狀態、玩家訊息與記憶資料傳給 AI 行為包。";
+                }
+                if (value.IndexOf("Unreal", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：Unreal Engine 專案。輸出會包含 Blueprint 接入說明，建議透過 AI Component 或後端服務處理模型呼叫。";
+                }
+                if (value.IndexOf("Mod", StringComparison.OrdinalIgnoreCase) >= 0 || value.IndexOf("自訂遊戲引擎", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：自訂遊戲引擎 / Mod SDK。只有遊戲支援 Mod、SDK、腳本或你有原始碼時才適合；封閉遊戲不能靠複製檔案直接改 NPC。";
+                }
+                if (value.IndexOf("影片", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：影片資料到操作策略。適合丟遊玩影片、影片網址或畫面截圖，輸出會協助建立畫面狀態與操作標註。";
+                }
+                if (value.IndexOf("開發板", StringComparison.OrdinalIgnoreCase) >= 0 || value.IndexOf("HID", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：開發板 / USB HID 控制。輸出會產生序列埠指令與控制策略範本，之後可接 Arduino、RP2040、ESP32 或其他支援 HID 的硬體。";
+                }
+                if (value.IndexOf("Switch", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：Nintendo Switch 手把橋接。只提供合法外部控制橋接概念，不提供破解、繞過安全或違反服務條款的方法。";
+                }
+                if (value.IndexOf("OpenAI", StringComparison.OrdinalIgnoreCase) >= 0 || value.IndexOf("LLM", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：OpenAI / 本機 LLM API。輸出會把提示詞、資料規則與 App 設定整理好；正式 API Key 不應放在前端。";
+                }
+                return "目前選擇：" + value + "。程式會依照這個目標產生對應的設定、教學與整合檔。";
+            }
+
+            if (combo == cboOutputKind)
+            {
+                if (value.IndexOf("完整", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：新手完整包。會輸出訓練包、教學、整合範本、風險說明、資料搜尋清單與操作對應表，適合第一次使用。";
+                }
+                if (value.IndexOf("訓練", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：只要訓練檔。會偏向輸出核心 .aipack、JSON、提示詞與資料清單，適合你已經知道怎麼接入的情況。";
+                }
+                if (value.IndexOf("工程師", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：整合給工程師使用。會保留較多設定檔、adapter、CSV 與技術文件，方便交給工程師接到遊戲、App 或硬體。";
+                }
+                return "目前選擇：教學優先。會加強新手步驟、限制說明、資料準備與整合流程，適合先理解再實作。";
+            }
+
+            if (combo == cboModelLevel)
+            {
+                if (value.IndexOf("入門", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：入門。只決定輸出較簡單，會重點產生需求整理、AI 行為包與基本提示詞；不代表要不要 GPU。";
+                }
+                if (value.IndexOf("進階", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：進階。會多輸出 API / 本機模型接入設定、資料規則與較完整的整合檔；是否用 GPU 仍由「訓練方式」決定。";
+                }
+                return "目前選擇：完整。會輸出訓練資料格式、標註表、整合檔與更多教學；是否用 GPU 仍由「訓練方式」決定。";
+            }
+
+            if (combo == cboTrainingBackend)
+            {
+                if (value.IndexOf("行為包", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：行為包 / 提示詞。不使用 GPU，最快開始。適合 NPC 人格、文字 AI、規則整理與先做可測試的原型。";
+                }
+                if (value.IndexOf("大模型", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "目前選擇：大模型 API。使用雲端或外部 LLM，不需要本地 GPU。適合資料整理、角色對話、問答與標註輔助；正式 API Key 建議放後端。";
+                }
+                if (value.IndexOf("GPU", StringComparison.OrdinalIgnoreCase) >= 0 && value.IndexOf("混合", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    return "目前選擇：本地 GPU 直接訓練。會產生 local_gpu_train 資料夾與啟動腳本。GPU 不限 NVIDIA，也可以是 AMD、Intel、Apple Silicon 或其他加速器，但需要對應訓練框架。";
+                }
+                return "目前選擇：混合。先用大模型整理資料或產生標註草稿，再交給本地 GPU 訓練。適合資料很多、需要先清理再訓練的情況。";
+            }
+
+            return fallback;
         }
 
         private TrackBar AddSliderRow(TableLayoutPanel table, string title, string help, int min, int max, int value, out Label valueLabel)
@@ -648,8 +911,6 @@ namespace AITrainingStudio
             label.Width = 60;
             label.TextAlign = ContentAlignment.MiddleLeft;
 
-            bar.Scroll += delegate { label.Text = bar.Value.ToString(); };
-
             panel.Controls.Add(bar);
             panel.Controls.Add(label);
             panel.Resize += delegate
@@ -657,7 +918,14 @@ namespace AITrainingStudio
                 label.Left = Math.Max(0, panel.ClientSize.Width - label.Width);
                 bar.Width = Math.Max(180, label.Left - 8);
             };
-            AddRow(table, title, panel, help);
+            Label helpLabel = AddRow(table, title, panel, help);
+            bar.Scroll += delegate
+            {
+                label.Text = bar.Value.ToString();
+                string sliderHelp = GetContextualHelp(bar, help);
+                helpLabel.Text = sliderHelp;
+                ShowHelp(sliderHelp);
+            };
             valueLabel = label;
             return bar;
         }
@@ -670,12 +938,45 @@ namespace AITrainingStudio
             }
 
             tips.SetToolTip(control, help);
-            control.Enter += delegate { ShowHelp(help); };
-            control.MouseEnter += delegate { ShowHelp(help); };
+            control.Enter += delegate { ShowHelp(GetContextualHelp(control, help)); };
+            control.MouseEnter += delegate { ShowHelp(GetContextualHelp(control, help)); };
 
             foreach (Control child in control.Controls)
             {
                 RegisterHelp(child, help);
+            }
+        }
+
+        private void RegisterHelp(Control control, string help, Label rowHelpLabel)
+        {
+            if (control == null)
+            {
+                return;
+            }
+
+            tips.SetToolTip(control, help);
+            EventHandler update = delegate
+            {
+                string text = GetContextualHelp(control, help);
+                if (rowHelpLabel != null)
+                {
+                    rowHelpLabel.Text = text;
+                }
+                ShowHelp(text);
+            };
+
+            control.Enter += update;
+            control.MouseEnter += update;
+
+            CheckBox check = control as CheckBox;
+            if (check != null)
+            {
+                check.CheckedChanged += update;
+            }
+
+            foreach (Control child in control.Controls)
+            {
+                RegisterHelp(child, help, rowHelpLabel);
             }
         }
 
