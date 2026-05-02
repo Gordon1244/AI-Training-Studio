@@ -125,7 +125,9 @@ cd local_gpu_train
 
 - 是否有 Python
 - 是否安裝 PyTorch
-- CUDA GPU 是否可用
+- 是否偵測到常見 GPU / 加速後端
+
+GPU 不限定 NVIDIA。可以是 NVIDIA、AMD、Intel、Apple Silicon 或其他 AI 加速器。只是不同硬體需要不同訓練框架或後端，例如 CUDA、ROCm、DirectML、OpenVINO、MPS，或廠商自己的 SDK。內建檢查腳本只能檢查常見 PyTorch 後端，若你的硬體使用其他後端，可以替換 `train_stub.py` 或改寫 `check_gpu.py`。
 
 如果環境不足，腳本會提示缺少什麼。
 

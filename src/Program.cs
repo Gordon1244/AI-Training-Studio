@@ -1531,9 +1531,9 @@ namespace AITrainingStudio
             sb.AppendLine("- 建議：不要把 API Key 放在前端 HTML；放在後端或本機安全設定。");
             sb.AppendLine();
             sb.AppendLine("## 本地 GPU");
-            sb.AppendLine("- 適合：你有 NVIDIA GPU、足夠 VRAM、Python、CUDA、PyTorch 或其他訓練框架。");
+            sb.AppendLine("- 適合：你有可用 GPU 或 AI 加速器，例如 NVIDIA、AMD、Intel、Apple Silicon 或其他硬體，並有對應的訓練框架。");
             sb.AppendLine("- 選擇「本地 GPU 直接訓練」時，會輸出 `local_gpu_train` 資料夾。");
-            sb.AppendLine("- 你可以從 `local_gpu_train\\start_local_gpu_training.ps1` 開始。若電腦沒有 Python、CUDA 或 PyTorch，腳本會提示環境不足。");
+            sb.AppendLine("- 你可以從 `local_gpu_train\\start_local_gpu_training.ps1` 開始。若電腦沒有 Python、PyTorch 或可用加速後端，腳本會提示環境不足。");
             sb.AppendLine("- 遊戲操作模型建議先用模擬環境或離線影片資料，不要直接接真機。");
             sb.AppendLine();
             sb.AppendLine("## 混合");
@@ -1564,12 +1564,12 @@ namespace AITrainingStudio
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("# 本地 GPU 直接訓練");
             sb.AppendLine();
-            sb.AppendLine("這個資料夾是給「本地 GPU 直接訓練」使用。它會從你的訓練包設定開始，檢查 Python / PyTorch / CUDA，然後啟動訓練腳本。");
+            sb.AppendLine("這個資料夾是給「本地 GPU 直接訓練」使用。它會從你的訓練包設定開始，檢查 Python / PyTorch / 可用 GPU 或加速後端，然後啟動訓練腳本。");
             sb.AppendLine();
             sb.AppendLine("## 需要先準備");
-            sb.AppendLine("- NVIDIA GPU 與可用 VRAM。");
+            sb.AppendLine("- 可用 GPU 或 AI 加速器，例如 NVIDIA、AMD、Intel、Apple Silicon 或其他硬體。");
             sb.AppendLine("- Python 3.10+。");
-            sb.AppendLine("- CUDA 版 PyTorch 或你自己的訓練框架。");
+            sb.AppendLine("- 支援你硬體的訓練框架，例如 PyTorch CUDA、ROCm、DirectML、OpenVINO、MPS，或你自己的訓練框架。");
             sb.AppendLine("- 已標註資料，格式可參考 `dataset_template.csv`。");
             sb.AppendLine();
             sb.AppendLine("## 開始");
@@ -1639,10 +1639,18 @@ namespace AITrainingStudio
             sb.AppendLine("    print('ERROR: PyTorch is not installed:', e)");
             sb.AppendLine("    sys.exit(2)");
             sb.AppendLine("print('torch:', torch.__version__)");
-            sb.AppendLine("print('cuda_available:', torch.cuda.is_available())");
-            sb.AppendLine("if not torch.cuda.is_available():");
-            sb.AppendLine("    print('ERROR: CUDA GPU is not available. Install CUDA PyTorch or choose non-GPU mode.')");
-            sb.AppendLine("    sys.exit(3)");
+            sb.AppendLine("backends = []");
+            sb.AppendLine("if getattr(torch, 'cuda', None) is not None and torch.cuda.is_available():");
+            sb.AppendLine("    backends.append('CUDA')");
+            sb.AppendLine("mps = getattr(getattr(torch, 'backends', None), 'mps', None)");
+            sb.AppendLine("if mps is not None and mps.is_available():");
+            sb.AppendLine("    backends.append('MPS')");
+            sb.AppendLine("if backends:");
+            sb.AppendLine("    print('accelerator_available:', ', '.join(backends))");
+            sb.AppendLine("else:");
+            sb.AppendLine("    print('WARNING: PyTorch did not report CUDA or MPS acceleration.')");
+            sb.AppendLine("    print('AMD/Intel/DirectML/OpenVINO or custom frameworks may still work, but this starter cannot auto-detect every backend.')");
+            sb.AppendLine("    print('Edit train_stub.py or replace it with your backend-specific training script if needed.')");
             return sb.ToString();
         }
 
