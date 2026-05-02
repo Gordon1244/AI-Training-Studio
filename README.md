@@ -21,7 +21,7 @@ dist\AITrainingStudio.exe
 - `resource_discovery_queue.csv` 自動找資料計畫
 - `action_inference_from_video_zh-TW.md` 只有畫面時推測操作的教學
 - `training_backend_plan_zh-TW.md` 訓練方式計畫
-- Unity / Godot / Unreal 接入範本
+- Unity / Godot / Unreal / 自訂引擎 / Mod SDK 接入範本
 - 開發板 / 手把橋接範本
 - 文字 AI App HTML 範本
 - 本地 GPU 直接訓練資料夾 `local_gpu_train`
@@ -136,8 +136,8 @@ GPU 不限定 NVIDIA。可以是 NVIDIA、AMD、Intel、Apple Silicon 或其他 
 ## 參數勾選項說明
 
 - 產生新手教學：輸出一步一步的中文操作流程，適合完全沒有程式背景的人。
-- 產生遊戲引擎整合範本：輸出 Unity、Godot、Unreal 的接入範本。
-- 產生開發板 / 手把橋接範本：輸出序列埠、控制策略、影片標註與硬體橋接範本。
+- 產生遊戲引擎整合範本：輸出 Unity、Godot、Unreal、自訂引擎或 Mod SDK 的接入範本。
+- 產生開發板 / 手把橋接範本：輸出序列埠、控制策略、影片標註與硬體橋接範本，可對應 Switch、PlayStation、Xbox、PC、Android、模擬器、自訂 HID 或其他合法控制環境。
 - 產生找資料清單：輸出自動找資料計畫與標註建議。
 - 產生文字 AI App 範本：輸出可雙擊開啟的 HTML 文字 AI App 範本。
 - 產生風險與限制說明：列出授權、安全、遊戲條款與真實設備風險。
@@ -164,6 +164,6 @@ AI Training Studio 不會破解遊戲，也不能把 AI 憑空塞進任意封閉
 
 封閉遊戲必須有官方 Mod、SDK、腳本接口、原始碼或合法外部控制方式，才可能把 AI 行為包接入。
 
-接 Nintendo Switch、其他主機、開發板或真實設備時，只能使用合法硬體與合法方式，不應繞過安全機制或違反服務條款。
+接 Switch、PlayStation、Xbox、PC、Android、模擬器、自訂 HID、開發板或其他真實設備時，只能使用合法硬體與合法方式，不應繞過安全機制或違反服務條款。
 
 入門模式產生的是可讀、可整合的 AI 行為包，不是大型神經網路權重檔。真正訓練 LLM、視覺模型或強化學習模型仍需要資料集、訓練框架、評測流程，以及相應的雲端或本地 GPU 環境。

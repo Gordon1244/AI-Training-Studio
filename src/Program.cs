@@ -449,8 +449,8 @@ namespace AITrainingStudio
             checks.Controls.Add(chkTextApp);
             checks.Controls.Add(chkSafetyNotes);
             RegisterHelp(chkTutorial, "產生新手教學：會把這次專案拆成步驟，告訴你先看哪些檔、如何測試、如何接到 NPC、文字 AI、影片操作或硬體。適合完全沒有程式背景的人，避免只拿到一堆檔案卻不知道下一步。");
-            RegisterHelp(chkAdapters, "產生遊戲引擎整合範本：會輸出 Unity C#、Godot GDScript、Unreal Blueprint 接入說明。用途是把 AI 行為包接到你能修改的遊戲專案、官方 Mod SDK 或自製遊戲；不能用來破解封閉商業遊戲。");
-            RegisterHelp(chkHardware, "產生開發板 / 手把橋接範本：會輸出序列埠指令、控制策略 JSON、影片標註 CSV 與接開發板的說明。適合 Arduino、RP2040、ESP32-S3 等硬體，再由你接合法的 HID / Gamepad 函式庫。");
+            RegisterHelp(chkAdapters, "產生遊戲引擎整合範本：會輸出 Unity、Godot、Unreal 與自訂引擎 / Mod SDK 的接入說明。用途是把 AI 行為包接到你能修改的遊戲專案、官方 Mod SDK 或自製遊戲；不能用來破解封閉商業遊戲。");
+            RegisterHelp(chkHardware, "產生開發板 / 手把橋接範本：會輸出序列埠指令、控制策略 JSON、影片標註 CSV 與接開發板的說明。可用 Arduino、RP2040、ESP32、Teensy、樹莓派 Pico 或其他支援合法輸入橋接的硬體，再由你接合法的 HID / Gamepad 函式庫。");
             RegisterHelp(chkResourcePlan, "產生找資料清單：當你沒有檔案、只有網址或只有需求時，會建立 resource_discovery_queue.csv，列出要搜尋的關鍵字、來源類型、資料用途、授權注意事項與標註方式。它不會未授權下載內容。");
             RegisterHelp(chkTextApp, "產生文字 AI App 範本：會輸出可雙擊開啟的 HTML 介面與 app_config.json。它會放入你的系統提示詞、人格、資料限制與 API 預留位置，之後可接大模型 API 或本機 LLM。正式使用時 API Key 應放後端。");
             RegisterHelp(chkSafetyNotes, "產生風險與限制說明：會列出不能做的事，例如破解遊戲、繞過主機安全、違反多人遊戲服務條款、使用未授權資料訓練、直接把未測試 AI 接真實設備。這份文件是給使用者與工程師檢查風險用。");
@@ -498,7 +498,7 @@ namespace AITrainingStudio
             buttons.Controls.Add(btnExampleController);
 
             RegisterHelp(btnTraining, "建立核心 AI 訓練包：.aipack、需求提示詞、資料清單、model card。這是最基本、最重要的輸出。");
-            RegisterHelp(btnIntegration, "除了訓練包之外，再建立 Unity / Godot / Unreal、操作對應表、硬體橋接和新手教學。");
+            RegisterHelp(btnIntegration, "除了訓練包之外，再建立遊戲引擎 / Mod SDK 接入範本、操作對應表、硬體橋接和新手教學。");
             RegisterHelp(btnTextApp, "建立訓練包、整合包，以及一個可雙擊開啟的文字 AI App HTML 範本。");
             RegisterHelp(btnOpen, "打開你設定的輸出資料夾。");
             RegisterHelp(btnExampleNpc, "自動填入 NPC 範例，適合第一次測試。");
@@ -657,7 +657,7 @@ namespace AITrainingStudio
                 }
                 if (check == chkAdapters)
                 {
-                    return state + (check.Checked ? "會產生 Unity、Godot、Unreal 等遊戲引擎接入範本。" : "不產生遊戲引擎接入範本；適合你只需要訓練檔或自己會寫接入程式。");
+                    return state + (check.Checked ? "會產生 Unity、Godot、Unreal、自訂引擎或 Mod SDK 等遊戲接入範本。" : "不產生遊戲引擎接入範本；適合你只需要訓練檔或自己會寫接入程式。");
                 }
                 if (check == chkHardware)
                 {
@@ -789,7 +789,7 @@ namespace AITrainingStudio
             {
                 if (value.IndexOf("NPC", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    return "目前選擇：NPC 智慧角色。適合做遊戲角色、村民、商人、敵人或隊友。輸出會重點整理人格、對話風格、記憶規則、任務反應，以及 Unity / Godot / Unreal 接入方式。";
+                    return "目前選擇：NPC 智慧角色。適合做遊戲角色、村民、商人、敵人或隊友。輸出會重點整理人格、對話風格、記憶規則、任務反應，以及 Unity、Godot、Unreal、自訂引擎或 Mod SDK 接入方式。";
                 }
                 if (value.IndexOf("遊戲", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
@@ -826,15 +826,15 @@ namespace AITrainingStudio
                 }
                 if (value.IndexOf("開發板", StringComparison.OrdinalIgnoreCase) >= 0 || value.IndexOf("HID", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    return "目前選擇：開發板 / USB HID 控制。輸出會產生序列埠指令與控制策略範本，之後可接 Arduino、RP2040、ESP32 或其他支援 HID 的硬體。";
+                    return "目前選擇：開發板 / USB HID 控制。輸出會產生序列埠指令與控制策略範本，之後可接 Arduino、RP2040、ESP32、Teensy、樹莓派 Pico 或其他支援合法 HID / Gamepad / API 輸入的硬體。";
                 }
-                if (value.IndexOf("Switch", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (value.IndexOf("手把", StringComparison.OrdinalIgnoreCase) >= 0 || value.IndexOf("控制器", StringComparison.OrdinalIgnoreCase) >= 0 || value.IndexOf("controller", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    return "目前選擇：Nintendo Switch 手把橋接。只提供合法外部控制橋接概念，不提供破解、繞過安全或違反服務條款的方法。";
+                    return "目前選擇：多平台手把 / 控制器橋接。可描述 Switch、PlayStation、Xbox、PC、Android、模擬器或自訂 HID 控制器；只提供合法外部控制橋接概念，不提供破解、繞過安全或違反服務條款的方法。";
                 }
-                if (value.IndexOf("OpenAI", StringComparison.OrdinalIgnoreCase) >= 0 || value.IndexOf("LLM", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (value.IndexOf("API", StringComparison.OrdinalIgnoreCase) >= 0 || value.IndexOf("LLM", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    return "目前選擇：OpenAI / 本機 LLM API。輸出會把提示詞、資料規則與 App 設定整理好；正式 API Key 不應放在前端。";
+                    return "目前選擇：大模型 / 本機 LLM / 相容 API。輸出會把提示詞、資料規則與 App 設定整理好；可接 OpenAI 相容 API、本機模型、公司模型或其他 LLM 服務。正式 API Key 不應放在前端。";
                 }
                 return "目前選擇：" + value + "。程式會依照這個目標產生對應的設定、教學與整合檔。";
             }
@@ -1030,21 +1030,21 @@ namespace AITrainingStudio
             {
                 cboTarget.Items.Add("影片資料到操作策略");
                 cboTarget.Items.Add("開發板 / USB HID 控制");
-                cboTarget.Items.Add("Nintendo Switch 手把橋接");
+                cboTarget.Items.Add("多平台手把 / 控制器橋接");
                 cboTarget.Items.Add("模擬器 / 自訂控制環境");
                 ShowHelp("遊戲操作模式會建立「看到什麼狀態 -> 做什麼操作」的對應表。接真實主機時，只能使用你有權使用的硬體和方法，不能繞過主機安全機制。");
             }
             else if (cboMode.SelectedIndex == 2)
             {
-                cboTarget.Items.Add("Windows 文字 AI App");
+                cboTarget.Items.Add("桌面文字 AI App");
                 cboTarget.Items.Add("網頁 App");
-                cboTarget.Items.Add("OpenAI / 本機 LLM API");
+                cboTarget.Items.Add("大模型 / 本機 LLM / 相容 API");
                 cboTarget.Items.Add("自訂應用程式");
-                ShowHelp("文字 AI 模式會建立提示詞、人格、資料索引和 App 範本。你可以之後接 OpenAI API、公司內部模型或本機 LLM。");
+                ShowHelp("文字 AI 模式會建立提示詞、人格、資料索引和 App 範本。你可以之後接 OpenAI 相容 API、其他雲端模型、公司內部模型或本機 LLM。");
             }
             else
             {
-                cboTarget.Items.Add("Windows 操作流程");
+                cboTarget.Items.Add("桌面操作流程");
                 cboTarget.Items.Add("API / 網頁服務");
                 cboTarget.Items.Add("機械 / 開發板");
                 cboTarget.Items.Add("自訂流程");
@@ -1739,7 +1739,7 @@ namespace AITrainingStudio
             sb.AppendLine("- 封閉遊戲通常不能把檔案放進資料夾就改變 NPC 行為，除非遊戲支援 Mod、官方 SDK、腳本、外掛或你有原始碼。");
             sb.AppendLine("- 接真實設備前，先用測試環境確認輸出不會造成危險、損壞或違反規範。");
             sb.AppendLine("- 使用影片、圖片、文字訓練前，請確認你有權使用這些資料。");
-            sb.AppendLine("- 若要接 Nintendo Switch 或其他主機，只使用合法購買、合法授權且不繞過安全機制的控制硬體。");
+            sb.AppendLine("- 若要接 Switch、PlayStation、Xbox、PC、Android、模擬器、自訂 HID 或其他主機 / 平台，只使用合法購買、合法授權且不繞過安全機制的控制硬體與方法。");
             sb.AppendLine("- 若要用於公開服務或多人遊戲，先確認服務條款允許自動化。");
             return sb.ToString();
         }
@@ -2123,7 +2123,7 @@ namespace AITrainingStudio
             Directory.CreateDirectory(hardware);
             WriteText(Path.Combine(hardware, "serial_controller_bridge.ino"), BuildSerialBridgeArduino());
             WriteText(Path.Combine(hardware, "controller_policy.json"), BuildControllerPolicyJson());
-            WriteText(Path.Combine(hardware, "switch_controller_connection_guide_zh-TW.md"), BuildSwitchGuide());
+            WriteText(Path.Combine(hardware, "multi_platform_controller_connection_guide_zh-TW.md"), BuildControllerConnectionGuide());
             WriteText(Path.Combine(hardware, "video_labeling_template.csv"), "time_ms,screen_state,action,strength,duration_ms,success,notes\n0,\"straight road\",ACCELERATE,80,500,true,\"example\"\n");
         }
 
@@ -2192,24 +2192,32 @@ namespace AITrainingStudio
             return sb.ToString();
         }
 
-        private string BuildSwitchGuide()
+        private string BuildControllerConnectionGuide()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("# Switch / 手把橋接教學");
+            sb.AppendLine("# 多平台手把 / 控制器橋接教學");
             sb.AppendLine();
-            sb.AppendLine("這份教學只提供通用、合法的控制橋接概念，不提供破解、繞過安全機制或規避服務條款的方法。");
+            sb.AppendLine("這份教學只提供通用、合法的控制橋接概念，不限定 Nintendo Switch。也可以用於 PlayStation、Xbox、PC、Android、模擬器、自訂 HID 控制器或其他支援合法外部控制的環境。");
+            sb.AppendLine("不提供破解、繞過安全機制或規避服務條款的方法。");
             sb.AppendLine();
             sb.AppendLine("## 基本架構");
             sb.AppendLine("1. 電腦端 AI 產生動作：`ACCELERATE`、`STEER_LEFT` 等。");
             sb.AppendLine("2. 電腦用 USB 序列埠把動作傳給開發板。");
-            sb.AppendLine("3. 開發板用合法的 HID Gamepad 函式庫輸出手把按鍵。");
-            sb.AppendLine("4. 主機或測試環境接收控制器輸入。");
+            sb.AppendLine("3. 開發板、控制器轉接器或軟體橋接層用合法方式輸出 Gamepad / Keyboard / HID / API 指令。");
+            sb.AppendLine("4. 目標平台、主機、PC 遊戲、模擬器或測試環境接收控制器輸入。");
+            sb.AppendLine();
+            sb.AppendLine("## 常見平台");
+            sb.AppendLine("- Switch：只能使用合法控制器或合法授權的外部控制方式。");
+            sb.AppendLine("- PlayStation / Xbox：依照官方控制器、授權周邊、Remote Play、開發者工具或允許的輸入方式處理。");
+            sb.AppendLine("- PC 遊戲：可使用鍵盤、滑鼠、XInput、DirectInput、HID、虛擬控制器或遊戲支援的 API。");
+            sb.AppendLine("- Android / 行動裝置：可使用藍牙手把、USB HID、ADB 測試流程或 App 內 API。");
+            sb.AppendLine("- 模擬器 / 自製遊戲：優先使用模擬器或遊戲本身提供的輸入映射與 API。");
             sb.AppendLine();
             sb.AppendLine("## 新手建議");
-            sb.AppendLine("- 先接 Windows 測試程式或網頁 gamepad 測試器。");
+            sb.AppendLine("- 先接桌面測試程式、網頁 gamepad 測試器、模擬器測試環境或自製測試場景。");
             sb.AppendLine("- 確認每個指令都對應到正確按鍵，再接真實主機。");
             sb.AppendLine("- 先限制速度和動作頻率，避免 AI 連發指令造成不可控。");
-            sb.AppendLine("- 使用自己的主機、自己的遊戲、自己的帳號，並確認規範允許。");
+            sb.AppendLine("- 使用自己的設備、自己的遊戲、自己的帳號，並確認平台規範與服務條款允許。");
             return sb.ToString();
         }
 
@@ -2229,7 +2237,7 @@ namespace AITrainingStudio
             JsonProp(sb, "  ", "app_name", txtProjectName.Text.Trim(), true);
             JsonProp(sb, "  ", "mode", cboMode.Text, true);
             JsonProp(sb, "  ", "system_prompt", BuildRequirementsPrompt(), true);
-            JsonProp(sb, "  ", "api_placeholder", "把你的 OpenAI API、本機 LLM 或公司模型接在這裡。不要把正式 API Key 寫在前端公開檔案。", false);
+            JsonProp(sb, "  ", "api_placeholder", "把你的大模型 API、本機 LLM、OpenAI 相容 API、公司模型或其他模型服務接在這裡。不要把正式 API Key 寫在前端公開檔案。", false);
             sb.AppendLine("}");
             return sb.ToString();
         }
@@ -2293,7 +2301,7 @@ namespace AITrainingStudio
             sb.AppendLine("目前它是範本，不會真的呼叫大型模型。要變成真正 AI：");
             sb.AppendLine("1. 打開 `index.html`。");
             sb.AppendLine("2. 找到 `sendToModel(userText)`。");
-            sb.AppendLine("3. 改成呼叫你的 OpenAI API、本機 LLM 或後端服務。");
+            sb.AppendLine("3. 改成呼叫你的大模型 API、本機 LLM、OpenAI 相容 API、公司模型或後端服務。");
             sb.AppendLine("4. 把 `systemPrompt` 一起送給模型。");
             sb.AppendLine();
             sb.AppendLine("正式 App 不建議把 API Key 放在 HTML 裡，應該放在後端。");
